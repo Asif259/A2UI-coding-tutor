@@ -1,0 +1,26 @@
+{
+  "about": "Student pasted a loop and wants it explained.",
+  "messages": [
+    {
+      "version": "1.0",
+      "createSurface": {
+        "surfaceId": "example",
+        "catalogId": "https://a2ui-tutor.dev/catalogs/tutor/v1/catalog.json",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["intro", "code"]},
+          {"id": "intro", "component": "Text", "text": "This loop sums the numbers 0 to 4. Pick a line to dig in."},
+          {
+            "id": "code",
+            "component": "CodeBlock",
+            "title": "sum.py",
+            "language": "python",
+            "code": "total = 0\nfor i in range(5):\n    total += i\nprint(total)",
+            "selectedLine": {"@path": "/line"},
+            "runAction": {"event": {"name": "run_code", "context": {}}},
+            "explainAction": {"event": {"name": "explain_line", "context": {"line": {"@path": "/line"}}}}
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "about": "Student asked for a quiz on Python lists.",
+  "messages": [
+    {
+      "version": "1.0",
+      "createSurface": {
+        "surfaceId": "example",
+        "catalogId": "https://a2ui-tutor.dev/catalogs/tutor/v1/catalog.json",
+        "components": [
+          {"id": "root", "component": "Column", "children": ["intro", "quiz"]},
+          {"id": "intro", "component": "Text", "text": "Quick check on **list indexing**."},
+          {
+            "id": "quiz",
+            "component": "Quiz",
+            "question": "What does `[10, 20, 30][1]` evaluate to?",
+            "options": ["10", "20", "30", "IndexError"],
+            "correctIndex": 1,
+            "explanation": "Indexing starts at 0, so index 1 is the second item: 20.",
+            "hint": "Python counts from zero.",
+            "selected": {"@path": "/answer"},
+            "onAnswer": {"event": {"name": "quiz_answer", "context": {"choice": {"@path": "/answer"}}}},
+            "onHint": {"event": {"name": "hint", "context": {}}}
+          }
+        ]
+      }
+    }
+  ]
+}
