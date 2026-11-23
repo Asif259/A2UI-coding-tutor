@@ -1,0 +1,323 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://a2ui-tutor.dev/catalogs/tutor/v1/catalog.json",
+  "catalogId": "https://a2ui-tutor.dev/catalogs/tutor/v1/catalog.json",
+  "protocolVersion": "1.0",
+  "title": "A2UI Tutor Catalog",
+  "description": "Interactive coding-tutor components: code, quizzes and progress.",
+  "instructions": "You are drawing for a coding tutor. Rules:\n\n- Pick the component that teaches best: CodeBlock to show code, Quiz to check\n  understanding, never prose where a component fits.\n- One idea per surface. Keep Text short; the components carry the lesson.\n- A Quiz has exactly one correct option; set correctIndex (0-based) and a one\n  or two sentence explanation. Do not leak the answer in the question.\n- Wire every interactive component to an action so the student's choice comes\n  back to you. Use the exact action names and context bindings in the examples.\n- Never invent component names or properties. Only the listed ones exist.",
+  "components": {
+    "Text": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "const": "Text"
+        },
+        "text": {
+          "$ref": "common_types.json#/$defs/DynamicString",
+          "description": "The text content to display. While simple Markdown formatting is supported (i.e. without HTML, images, or links), utilizing dedicated UI components is generally preferred for a richer and more structured presentation."
+        },
+        "variant": {
+          "enum": [
+            "caption",
+            "body"
+          ],
+          "type": "string",
+          "default": "body",
+          "description": "A hint for the base text style."
+        },
+        "weight": {
+          "$ref": "#/$defs/Weight"
+        }
+      },
+      "required": [
+        "component",
+        "text"
+      ]
+    },
+    "Row": {
+      "type": "object",
+      "description": "A layout component that arranges its children horizontally. To create a grid layout, nest Columns within this Row.",
+      "properties": {
+        "component": {
+          "const": "Row"
+        },
+        "children": {
+          "$ref": "common_types.json#/$defs/ChildList",
+          "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list. Children cannot be defined inline, they must be referred to by ID."
+        },
+        "justify": {
+          "enum": [
+            "center",
+            "end",
+            "spaceAround",
+            "spaceBetween",
+            "spaceEvenly",
+            "start",
+            "stretch"
+          ],
+          "type": "string",
+          "default": "start",
+          "description": "Defines the arrangement of children along the main axis (horizontally). Use 'spaceBetween' to push items to the edges, or 'start'/'end'/'center' to pack them together."
+        },
+        "align": {
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch"
+          ],
+          "type": "string",
+          "default": "stretch",
+          "description": "Defines the alignment of children along the cross axis (vertically). This is similar to the CSS 'align-items' property, but uses camelCase values (e.g., 'start')."
+        },
+        "weight": {
+          "$ref": "#/$defs/Weight"
+        }
+      },
+      "required": [
+        "component",
+        "children"
+      ]
+    },
+    "Column": {
+      "type": "object",
+      "description": "A layout component that arranges its children vertically. To create a grid layout, nest Rows within this Column.",
+      "properties": {
+        "component": {
+          "const": "Column"
+        },
+        "children": {
+          "$ref": "common_types.json#/$defs/ChildList",
+          "description": "Defines the children. Use an array of strings for a fixed set of children, or a template object to generate children from a data list. Children cannot be defined inline, they must be referred to by ID."
+        },
+        "justify": {
+          "enum": [
+            "center",
+            "end",
+            "spaceAround",
+            "spaceBetween",
+            "spaceEvenly",
+            "start",
+            "stretch"
+          ],
+          "type": "string",
+          "default": "start",
+          "description": "Defines the arrangement of children along the main axis (vertically). Use 'spaceBetween' to push items to the edges (e.g. header at top, footer at bottom), or 'start'/'end'/'center' to pack them together."
+        },
+        "align": {
+          "enum": [
+            "start",
+            "center",
+            "end",
+            "stretch"
+          ],
+          "type": "string",
+          "default": "stretch",
+          "description": "Defines the alignment of children along the cross axis (horizontally). This is similar to the CSS 'align-items' property."
+        },
+        "weight": {
+          "$ref": "#/$defs/Weight"
+        }
+      },
+      "required": [
+        "component",
+        "children"
+      ]
+    },
+    "Divider": {
+      "type": "object",
+      "properties": {
+        "component": {
+          "const": "Divider"
+        },
+        "axis": {
+          "enum": [
+            "vertical",
+            "horizontal"
+          ],
+          "type": "string",
+          "default": "horizontal",
+          "description": "The orientation of the divider."
+        },
+        "weight": {
+          "$ref": "#/$defs/Weight"
+        }
+      },
+      "required": [
+        "component"
+      ]
+    },
+    "CodeBlock": {
+      "type": "object",
+      "allOf": [
+        {
+          "type": "object",
+          "description": "Syntax-highlighted code. The student can click a line number to select it, then press 'Explain line'. 'Run' asks the agent to predict/explain the output (code is never executed).",
+          "properties": {
+            "component": {
+              "const": "CodeBlock"
+            },
+            "code": {
+              "$ref": "https://a2ui.org/specification/v1_0/common_types.json#/$defs/DynamicString",
+              "description": "The source code to show."
+            },
+            "language": {
+              "type": "string",
+              "enum": [
+                "python",
+                "javascript",
+                "typescript",
+                "bash",
+                "json",
+                "java",
+                "go",
+                "rust",
+                "sql",
+                "c"
+              ],
+              "description": "Syntax language."
+            },
+            "title": {
+              "type": "string",
+              "description": "Optional short caption, e.g. a filename."
+            },
+            "selectedLine": {
+              "$ref": "https://a2ui.org/specification/v1_0/common_types.json#/$defs/DynamicNumber",
+              "description": "Bound to the 1-based selected line: {\"@path\": \"/selectedLine\"}."
+            },
+            "runAction": {
+              "$ref": "https://a2ui.org/specification/v1_0/common_types.json#/$defs/Action",
+              "description": "Fired when the student presses Run."
+            },
+            "explainAction": {
+              "$ref": "https://a2ui.org/specification/v1_0/common_types.json#/$defs/Action",
+              "description": "Fired when the student presses 'Explain line'. Context should bind the selected line."
+            }
+          },
+          "required": [
+            "component",
+            "code",
+            "language"
+          ]
+        },
+        {
+          "$ref": "https://a2ui.org/specification/v1_0/common_types.json#/$defs/ComponentCommon"
+        },
+        {
+          "$ref": "#/$defs/CatalogComponentCommon"
+        }
+      ],
+      "unevaluatedProperties": false
+    },
+    "Quiz": {
+      "type": "object",
+      "allOf": [
+        {
+          "type": "object",
+          "description": "A multiple-choice question with instant feedback. The component marks the answer right or wrong locally, then fires onAnswer so the agent can respond.",
+          "properties": {
+            "component": {
+              "const": "Quiz"
+            },
+            "question": {
+              "$ref": "https://a2ui.org/specification/v1_0/common_types.json#/$defs/DynamicString",
+              "description": "The question text."
+            },
+            "options": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 2,
+              "maxItems": 6,
+              "description": "The answer choices."
+            },
+            "correctIndex": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "0-based index of the one correct option."
+            },
+            "explanation": {
+              "$ref": "https://a2ui.org/specification/v1_0/common_types.json#/$defs/DynamicString",
+              "description": "Shown after answering; why the answer is right."
+            },
+            "hint": {
+              "type": "string",
+              "description": "Optional hint text shown on request."
+            },
+            "selected": {
+              "$ref": "https://a2ui.org/specification/v1_0/common_types.json#/$defs/DynamicNumber",
+              "description": "Bound path the component writes the chosen index to: {\"@path\": \"/answer\"}."
+            },
+            "onAnswer": {
+              "$ref": "https://a2ui.org/specification/v1_0/common_types.json#/$defs/Action",
+              "description": "Fired after the student picks an option. Bind the chosen index."
+            },
+            "onHint": {
+              "$ref": "https://a2ui.org/specification/v1_0/common_types.json#/$defs/Action",
+              "description": "Fired when the student asks for a hint."
+            }
+          },
+          "required": [
+            "component",
+            "question",
+            "options",
+            "correctIndex",
+            "onAnswer"
+          ]
+        },
+        {
+          "$ref": "https://a2ui.org/specification/v1_0/common_types.json#/$defs/ComponentCommon"
+        },
+        {
+          "$ref": "#/$defs/CatalogComponentCommon"
+        }
+      ],
+      "unevaluatedProperties": false
+    }
+  },
+  "functions": {},
+  "$defs": {
+    "Weight": {
+      "description": "The relative weight of this component within a Row or Column. This is similar to the CSS 'flex-grow' property. Note: this may ONLY be set when the component is a direct descendant of a Row or Column.",
+      "type": "number"
+    },
+    "anyComponent": {
+      "oneOf": [
+        {
+          "$ref": "#/components/Text"
+        },
+        {
+          "$ref": "#/components/Row"
+        },
+        {
+          "$ref": "#/components/Column"
+        },
+        {
+          "$ref": "#/components/Divider"
+        },
+        {
+          "$ref": "#/components/CodeBlock"
+        },
+        {
+          "$ref": "#/components/Quiz"
+        }
+      ],
+      "discriminator": {
+        "propertyName": "component"
+      }
+    },
+    "anyFunction": {
+      "not": {}
+    },
+    "CatalogComponentCommon": {
+      "type": "object",
+      "properties": {
+        "weight": {
+          "$ref": "#/$defs/Weight"
+        }
+      }
+    }
+  }
+}
