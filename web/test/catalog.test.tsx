@@ -65,3 +65,54 @@ describe("tutor catalog", () => {
     expect(actions.find((a) => a.name === "explain_line")!.context.line).toBe(2);
   });
 });
+
+function renderRoot(root: object) {
+  const actions: { name: string; context: Record<string, unknown> }[] = [];
+  const mp = new MessageProcessor([createTutorCatalog()], (a) => void actions.push(a as never));
+  mp.processMessages([
+    {
+      version: "1.0",
+      createSurface: { surfaceId: "s2", catalogId: TUTOR_CATALOG_ID, components: [{ id: "root", ...root }] },
+    },
+  ]);
+  render(<A2uiSurface surface={mp.getSurface("s2") as never} />);
+  return actions;
+}
+
+describe("new components", () => {
+  it("PredictOutput reveals output, judges the match, sends the guess", async () => {
+    const actions = renderRoot({
+      component: "PredictOutput",
+      code: "print(1)",
+      language: "python",
+      expectedOutput: "1",
+      prediction: { "@path": "/g" },
+      onReveal: { event: { name: "predict_reveal", context: { guess: { "@path": "/g" } } } },
+    });
+    fireEvent.change(screen.getByLabelText(/Your prediction/), { target: { value: " 1 " } });
+    fireEvent.click(screen.getByText("Reveal"));
+    expect(screen.getByRole("status").textContent).toContain("Match.");
+    await waitFor(() => expect(actions[0]?.name).toBe("predict_reveal"));
+    expect(actions[0]!.context.guess).toBe(" 1 ");
+  });
+
+  it("StepWalkthrough renders collapsible steps", () => {
+    renderRoot({
+      component: "StepWalkthrough",
+      steps: [{ title: "One", body: "a" }, { title: "Two", body: "b" }],
+    });
+    const d = document.querySelectorAll("details");
+    expect(d.length).toBe(2);
+    expect((d[0] as HTMLDetailsElement).open).toBe(true);
+    expect((d[1] as HTMLDetailsElement).open).toBe(false);
+  });
+
+  it("ProgressCard counts mastered topics", () => {
+    renderRoot({
+      component: "ProgressCard",
+      topics: [{ name: "Lists", mastery: 90 }, { name: "Loops", mastery: 40 }],
+    });
+    expect(screen.getByText("1 of 2 topics mastered")).toBeTruthy();
+    expect(screen.getAllByRole("progressbar").length).toBe(2);
+  });
+});

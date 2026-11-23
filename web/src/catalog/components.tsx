@@ -143,7 +143,109 @@ export function Quiz({ props }: ViewProps) {
   );
 }
 
+export function PredictOutput({ props }: ViewProps) {
+  const language = text(props.language) || "python";
+  const [guess, setGuess] = useState("");
+  const [revealed, setRevealed] = useState(false);
+  const expected = text(props.expectedOutput);
+  const norm = (x: string) => x.trim().replace(/\s+/g, " ");
+  const reveal = () => {
+    if (typeof props.setPrediction === "function") (props.setPrediction as (v: string) => void)(guess);
+    setRevealed(true);
+    queueMicrotask(() => run(props.onReveal));
+  };
+  return (
+    <section className="tc-predict" aria-label="Predict the output">
+      <p className="tc-quiz__q">{text(props.prompt) || "What does this print?"}</p>
+      <pre className="tc-code__body tc-predict__code">
+        {text(props.code)
+          .split("\n")
+          .map((line, i) => (
+            <div key={i} className="tc-line">
+              <code
+                className="tc-line__code"
+                dangerouslySetInnerHTML={{ __html: highlightLine(line, language) || "&nbsp;" }}
+              />
+            </div>
+          ))}
+      </pre>
+      <label className="tc-predict__label">
+        Your prediction
+        <textarea value={guess} disabled={revealed} rows={2} onChange={(e) => setGuess(e.target.value)} />
+      </label>
+      {revealed ? (
+        <div role="status" className="tc-predict__result">
+          <p className={norm(guess) === norm(expected) ? "tc-quiz__fb is-correct" : "tc-quiz__fb is-wrong"}>
+            <strong>{norm(guess) === norm(expected) ? "Match." : "Different."}</strong>
+          </p>
+          <p>Actual output:</p>
+          <pre className="tc-predict__out">{expected}</pre>
+          {props.explanation ? <p>{text(props.explanation)}</p> : null}
+        </div>
+      ) : (
+        <button type="button" onClick={reveal}>
+          Reveal
+        </button>
+      )}
+    </section>
+  );
+}
+
+export function StepWalkthrough({ props }: ViewProps) {
+  const steps: { title: string; body: string }[] = Array.isArray(props.steps) ? props.steps : [];
+  return (
+    <section className="tc-steps" aria-label={text(props.title) || "Walkthrough"}>
+      {props.title ? <h3>{text(props.title)}</h3> : null}
+      {steps.map((st, i) => (
+        <details key={i} open={i === 0}>
+          <summary>
+            <span className="tc-steps__n">{i + 1}</span> {text(st.title)}
+          </summary>
+          <p>{text(st.body)}</p>
+        </details>
+      ))}
+    </section>
+  );
+}
+
+export function ProgressCard({ props }: ViewProps) {
+  const topics: { name: string; mastery: number }[] = Array.isArray(props.topics) ? props.topics : [];
+  const mastered = topics.filter((t) => t.mastery >= 80).length;
+  return (
+    <section className="tc-progress" aria-label={text(props.title) || "Progress"}>
+      <h3>{text(props.title) || "Your progress"}</h3>
+      <p className="tc-progress__sum">
+        {mastered} of {topics.length} topics mastered
+      </p>
+      {topics.map((t) => (
+        <div key={t.name} className="tc-progress__row">
+          <span>{t.name}</span>
+          <div
+            role="progressbar"
+            aria-label={t.name}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={t.mastery}
+            className={`tc-progress__bar${t.mastery >= 80 ? " is-done" : ""}`}
+          >
+            <span style={{ width: `${t.mastery}%` }} />
+          </div>
+          <span>{t.mastery}%</span>
+        </div>
+      ))}
+      {props.onContinue ? (
+        <button type="button" onClick={() => run(props.onContinue)}>
+          Keep going
+        </button>
+      ) : null}
+    </section>
+  );
+}
+
 export const TUTOR_VIEWS: Record<string, (p: ViewProps) => ReactElement> = {
   CodeBlock,
   Quiz,
+  PredictOutput,
+  StepWalkthrough,
+  ProgressCard,
 };

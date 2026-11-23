@@ -1,0 +1,25 @@
+{
+  "about": "Student wants to test their understanding of a loop.",
+  "messages": [
+    {
+      "version": "1.0",
+      "createSurface": {
+        "surfaceId": "example",
+        "catalogId": "https://a2ui-tutor.dev/catalogs/tutor/v1/catalog.json",
+        "components": [
+          {
+            "id": "root",
+            "component": "PredictOutput",
+            "prompt": "What does this print?",
+            "code": "for i in range(3):\n    print(i * 2)",
+            "language": "python",
+            "expectedOutput": "0\n2\n4",
+            "explanation": "range(3) yields 0, 1, 2 and each is doubled.",
+            "prediction": {"@path": "/guess"},
+            "onReveal": {"event": {"name": "predict_reveal", "context": {"guess": {"@path": "/guess"}}}}
+          }
+        ]
+      }
+    }
+  ]
+}

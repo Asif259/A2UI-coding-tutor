@@ -111,3 +111,46 @@ def test_catalog_declares_v1():
     assert CATALOG_JSON["protocolVersion"] == "1.0"
     assert CATALOG_JSON["catalogId"] == CATALOG_ID
     assert json.loads(json.dumps(copy.deepcopy(CATALOG_JSON)))  # serialisable
+
+
+NEW_COMPONENTS = {
+    "PredictOutput": {
+        "component": "PredictOutput",
+        "code": "print(1)",
+        "language": "python",
+        "expectedOutput": "1",
+        "prediction": {"@path": "/g"},
+        "onReveal": {"event": {"name": "predict_reveal", "context": {"guess": {"@path": "/g"}}}},
+    },
+    "StepWalkthrough": {
+        "component": "StepWalkthrough",
+        "title": "How a loop runs",
+        "steps": [{"title": "Start", "body": "i is 0"}, {"title": "Next", "body": "i is 1"}],
+    },
+    "ProgressCard": {
+        "component": "ProgressCard",
+        "title": "Progress",
+        "topics": [{"name": "Lists", "mastery": 90}, {"name": "Loops", "mastery": 40}],
+        "onContinue": {"event": {"name": "continue", "context": {}}},
+    },
+}
+
+
+@pytest.mark.parametrize("name", NEW_COMPONENTS)
+def test_new_components_valid(name: str):
+    apply([{"id": "root", **NEW_COMPONENTS[name]}])
+
+
+@pytest.mark.parametrize(
+    ("name", "patch"),
+    [
+        ("ProgressCard", {"topics": [{"name": "x", "mastery": 101}]}),
+        ("ProgressCard", {"topics": []}),
+        ("StepWalkthrough", {"steps": []}),
+        ("StepWalkthrough", {"steps": [{"title": "t"}]}),
+        ("PredictOutput", {"language": "cobol"}),
+    ],
+)
+def test_new_components_constraints(name: str, patch: dict):
+    with pytest.raises(A2uiError):
+        apply([{"id": "root", **NEW_COMPONENTS[name], **patch}])

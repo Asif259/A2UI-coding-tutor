@@ -10,8 +10,9 @@ COMMON = "https://a2ui.org/specification/v1_0/common_types.json#/$defs"
 CATALOG_INSTRUCTIONS = """\
 You are drawing for a coding tutor. Rules:
 
-- Pick the component that teaches best: CodeBlock to show code, Quiz to check
-  understanding, never prose where a component fits.
+- Pick the component that teaches best: CodeBlock shows code, Quiz checks understanding,
+  PredictOutput has the student guess output first, StepWalkthrough explains a process,
+  ProgressCard shows mastery. Never prose where a component fits.
 - One idea per surface. Keep Text short; the components carry the lesson.
 - A Quiz has exactly one correct option; set correctIndex (0-based) and a one
   or two sentence explanation. Do not leak the answer in the question.
@@ -98,7 +99,76 @@ QUIZ = _component(
     ["question", "options", "correctIndex", "onAnswer"],
 )
 
+PREDICT_OUTPUT = _component(
+    "PredictOutput",
+    "Shows code; the student types what it prints, then presses Reveal to compare with the"
+    " real output. Code is never executed: expectedOutput comes from you, so be exact.",
+    {
+        "prompt": _dyn("DynamicString", "Short instruction, e.g. 'What does this print?'."),
+        "code": _dyn("DynamicString", "The code to reason about."),
+        "language": {"type": "string", "enum": LANGUAGES, "description": "Syntax language."},
+        "expectedOutput": _dyn("DynamicString", "Exact stdout of the code."),
+        "explanation": _dyn("DynamicString", "Why that is the output."),
+        "prediction": _dyn(
+            "DynamicString",
+            'Bound path the component writes the student\'s guess to: {"@path": "/guess"}.',
+        ),
+        "onReveal": _action(
+            'Fired on Reveal. Bind the guess: context {guess: {"@path": "/guess"}}.'
+        ),
+    },
+    ["code", "language", "expectedOutput", "onReveal"],
+)
+
+STEP_WALKTHROUGH = _component(
+    "StepWalkthrough",
+    "A titled list of collapsible steps for explaining a process or how code runs, in order.",
+    {
+        "title": {"type": "string", "description": "What is being walked through."},
+        "steps": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 12,
+            "items": {
+                "type": "object",
+                "properties": {"title": {"type": "string"}, "body": {"type": "string"}},
+                "required": ["title", "body"],
+                "additionalProperties": False,
+            },
+            "description": "Ordered steps; the first opens by default.",
+        },
+    },
+    ["steps"],
+)
+
+PROGRESS_CARD = _component(
+    "ProgressCard",
+    "Topics the student is learning with a 0-100 mastery bar each; 80+ counts as mastered.",
+    {
+        "title": {"type": "string", "description": "Card heading."},
+        "topics": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 12,
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "mastery": {"type": "integer", "minimum": 0, "maximum": 100},
+                },
+                "required": ["name", "mastery"],
+                "additionalProperties": False,
+            },
+        },
+        "onContinue": _action("Optional 'Keep going' button; fired with no context."),
+    },
+    ["topics"],
+)
+
 TUTOR_COMPONENTS: dict[str, dict[str, Any]] = {
     "CodeBlock": CODE_BLOCK,
     "Quiz": QUIZ,
+    "PredictOutput": PREDICT_OUTPUT,
+    "StepWalkthrough": STEP_WALKTHROUGH,
+    "ProgressCard": PROGRESS_CARD,
 }

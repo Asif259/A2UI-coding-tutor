@@ -36,3 +36,16 @@ button:disabled { opacity: .5; cursor: default; }
 .tc-opt.is-wrong { background: #fde8e6; border-color: #b3261e; }
 .tc-quiz__fb { margin: 10px 0 0; } .tc-quiz__fb.is-correct { color: #1f7a42; } .tc-quiz__fb.is-wrong { color: #b3261e; }
 .tc-quiz__hint { color: #6b6e7a; margin: 8px 0 0; } .tc-quiz__hintbtn { margin-top: 10px; }
+
+/* PredictOutput, StepWalkthrough, ProgressCard */
+.tc-predict__code { background: #14151a; color: #e6e6ea; border-radius: 8px; padding: 8px 12px; }
+.tc-predict__label { display: grid; gap: 4px; margin: 10px 0; font-size: .9rem; }
+.tc-predict__label textarea { font: 13px ui-monospace, Menlo, monospace; padding: 8px; border-radius: 8px; border: 1px solid #c9cad2; }
+.tc-predict__out { background: #f0f0f4; padding: 8px 12px; border-radius: 8px; margin: 0 0 8px; }
+.tc-steps details { border: 1px solid #dcdde3; border-radius: 8px; padding: 8px 12px; margin: 6px 0; }
+.tc-steps summary { cursor: pointer; font-weight: 600; } .tc-steps p { margin: 8px 0 0; }
+.tc-steps__n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #2f5bea; color: #fff; font-size: .8rem; margin-right: 6px; }
+.tc-progress h3, .tc-steps h3 { margin: 0 0 4px; } .tc-progress__sum { margin: 0 0 10px; color: #6b6e7a; }
+.tc-progress__row { display: grid; grid-template-columns: 140px 1fr 44px; gap: 10px; align-items: center; margin: 6px 0; }
+.tc-progress__bar { height: 10px; background: #e6e7ec; border-radius: 5px; overflow: hidden; }
+.tc-progress__bar span { display: block; height: 100%; background: #2f5bea; } .tc-progress__bar.is-done span { background: #2e9e57; }
