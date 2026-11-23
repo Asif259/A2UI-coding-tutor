@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import glob
 import json
+import logging
 import pathlib
 import re
 from dataclasses import dataclass, field
@@ -17,6 +18,7 @@ from a2ui.processor import A2uiRequestProcessor
 from .catalog import CATALOG, new_renderer_state
 from .llm import LLM, Turn
 
+log = logging.getLogger(__name__)
 EXAMPLES_DIR = pathlib.Path(__file__).parent / "examples"
 
 ROLE = """\
@@ -115,12 +117,14 @@ class Tutor:
         try:
             raw = await self.llm.generate(self.system, s.history)
         except Exception:  # network, quota, auth: never crash the chat
+            log.exception("LLM call failed")
             s.history.pop()
             return Reply("The tutor model is unavailable right now. Please try again.", [], None)
         s.history.append(("model", raw))
         try:
             return self._parse(s, raw)
         except A2uiError as err:
+            log.warning("invalid model output, retrying: %s", err)
             # Guardrail 1: one repair attempt, showing the model exactly what was wrong.
             s.history.append(
                 (

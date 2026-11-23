@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import pathlib
 import sys
 
@@ -20,6 +21,8 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from app.llm import default_llm  # noqa: E402
 from app.tutor import Tutor  # noqa: E402
+
+logging.basicConfig(level=logging.WARNING)
 
 
 async def main() -> int:
