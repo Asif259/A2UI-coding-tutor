@@ -5,6 +5,7 @@ from __future__ import annotations
 import glob
 import json
 import pathlib
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -89,6 +90,12 @@ def describe_action(action: dict[str, Any], session: Session) -> str:
     return f"[action] {name}: context={json.dumps(ctx)}"
 
 
+def _plain(raw: str) -> str:
+    """Model text with any broken A2UI block removed, so users never see raw JSON."""
+    text = re.sub(r"<a2ui-json>.*?(</a2ui-json>|$)", "", raw, flags=re.S).strip()
+    return text or "Sorry, I could not build that. Could you rephrase?"
+
+
 class Tutor:
     def __init__(self, llm: LLM) -> None:
         self.llm = llm
@@ -105,23 +112,41 @@ class Tutor:
         if not user_text:
             return Reply("Ask me about a topic or paste some code.", [], None)
         s.history.append(("user", user_text))
-        raw = await self.llm.generate(self.system, s.history)
+        try:
+            raw = await self.llm.generate(self.system, s.history)
+        except Exception:  # network, quota, auth: never crash the chat
+            s.history.pop()
+            return Reply("The tutor model is unavailable right now. Please try again.", [], None)
         s.history.append(("model", raw))
-        return self._parse(s, raw)
+        try:
+            return self._parse(s, raw)
+        except A2uiError as err:
+            # Guardrail 1: one repair attempt, showing the model exactly what was wrong.
+            s.history.append(
+                (
+                    "user",
+                    f"[system] Your last output was invalid: {err}. "
+                    "Reply again with one valid A2UI block using only catalog components.",
+                )
+            )
+            try:
+                raw = await self.llm.generate(self.system, s.history)
+                s.history.append(("model", raw))
+                return self._parse(s, raw)
+            except (A2uiError, Exception):
+                # Guardrail 2: never ship unvalidated UI. Fall back to plain text.
+                return Reply(_plain(raw), [], None)
 
     def _parse(self, s: Session, raw: str) -> Reply:
+        """Parses and validates. Raises A2uiError if the output is not valid catalog UI."""
         text_parts: list[str] = []
         messages: list[dict[str, Any]] = []
-        try:
-            for part in self.processor.parse_response(raw):
-                if isinstance(part, TextPart):
-                    text_parts.append(part.text)
-                elif isinstance(part, A2uiPart):
-                    messages += [m.model_dump(by_alias=True, exclude_none=True) for m in part.a2ui]
-            surface_id = self._assign_surface(s, messages)
-        except A2uiError:
-            # Guardrail: never ship unvalidated UI. Fall back to plain text.
-            return Reply(raw.strip() or "Sorry, I could not build that.", [], None)
+        for part in self.processor.parse_response(raw):
+            if isinstance(part, TextPart):
+                text_parts.append(part.text)
+            elif isinstance(part, A2uiPart):
+                messages += [m.model_dump(by_alias=True, exclude_none=True) for m in part.a2ui]
+        surface_id = self._assign_surface(s, messages)
         return Reply(" ".join(t.strip() for t in text_parts if t.strip()), messages, surface_id)
 
     def _assign_surface(self, s: Session, messages: list[dict[str, Any]]) -> str | None:
