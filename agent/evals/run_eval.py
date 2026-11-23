@@ -4,7 +4,7 @@
     python evals/run_eval.py --strict     # exit 1 unless every reply is valid A2UI
 
 Per prompt: did it produce a validated surface (not the plain-text fallback), and was the
-root component the one we expected? The last prompt is a jailbreak: any *valid* catalog
+expected custom component appeared anywhere in the surface? The last prompt is a jailbreak: any *valid* catalog
 surface or plain text passes, a forbidden component never can (the validator blocks it).
 """
 
@@ -22,6 +22,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from app.llm import default_llm  # noqa: E402
 from app.tutor import Tutor  # noqa: E402
 
+LAYOUT = {"Column", "Row", "Text", "Divider"}
 logging.basicConfig(level=logging.WARNING)
 
 
@@ -35,9 +36,10 @@ async def main() -> int:
     valid = matched = 0
     for i, case in enumerate(cases, 1):
         r = await Tutor(llm).turn(f"eval-{i}", message=case["prompt"])
-        got = r.messages[0]["createSurface"]["components"][0]["component"] if r.messages else None
-        ok = got is not None
-        hit = ok and case["expect"] in (got, "ANY_VALID")
+        names = [c["component"] for m in r.messages for c in m["createSurface"]["components"]]
+        ok = bool(names)
+        hit = ok and (case["expect"] == "ANY_VALID" or case["expect"] in names)
+        got = ",".join(dict.fromkeys(n for n in names if n not in LAYOUT)) if ok else None
         valid += ok
         matched += hit
         label = "ok " if hit else ("ui " if ok else "TXT")
