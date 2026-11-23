@@ -1,0 +1,11 @@
+services:
+  agent:
+    build: ./agent
+    env_file: .env
+    environment:
+      TUTOR_OFFLINE: "${TUTOR_OFFLINE:-0}"
+    expose: ["8000"]
+  web:
+    build: ./web
+    ports: ["8080:80"]
+    depends_on: [agent]
