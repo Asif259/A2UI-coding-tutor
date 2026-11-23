@@ -3,11 +3,12 @@ import { MessageProcessor } from "@a2ui/web_core/v1_0";
 import { useMemo, useRef, useState } from "react";
 import { type ActionPayload, chat } from "./api";
 import { createTutorCatalog } from "./catalog";
+import Providers from "./Providers";
 
 type Item =
   | { kind: "user"; text: string }
-  | { kind: "tutor"; text: string }
-  | { kind: "surface"; id: string };
+  | { kind: "tutor"; text: string; via?: string | null }
+  | { kind: "surface"; id: string; via?: string | null };
 
 export default function App() {
   const sessionId = useRef(crypto.randomUUID()).current;
@@ -15,6 +16,7 @@ export default function App() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [settings, setSettings] = useState(false);
 
   const send = async (body: { message: string } | { action: ActionPayload }) => {
     setBusy(true);
@@ -24,8 +26,8 @@ export default function App() {
       mp.processMessages(r.messages as never);
       setItems((prev) => [
         ...prev,
-        ...(r.text ? [{ kind: "tutor", text: r.text } as Item] : []),
-        ...(r.surfaceId ? [{ kind: "surface", id: r.surfaceId } as Item] : []),
+        ...(r.text ? [{ kind: "tutor", text: r.text, via: r.provider } as Item] : []),
+        ...(r.surfaceId ? [{ kind: "surface", id: r.surfaceId, via: r.provider } as Item] : []),
       ]);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -53,7 +55,13 @@ export default function App() {
 
   return (
     <main className="app">
-      <h1>A2UI Tutor</h1>
+      <header className="bar">
+        <h1>A2UI Tutor</h1>
+        <button type="button" onClick={() => setSettings((v) => !v)} aria-expanded={settings}>
+          AI providers
+        </button>
+      </header>
+      {settings && <Providers />}
       <div className="feed" aria-live="polite">
         {items.length === 0 && (
           <p className="muted">Ask for a quiz ("quiz me on Python lists") or paste some code.</p>
@@ -62,6 +70,7 @@ export default function App() {
           it.kind === "surface" ? (
             <div className="surface" key={i}>
               <A2uiSurface surface={mp.getSurface(it.id) as never} />
+              {it.via ? <small className="via">via {it.via}</small> : null}
             </div>
           ) : (
             <p key={i} className={it.kind === "user" ? "bubble user" : "bubble"}>

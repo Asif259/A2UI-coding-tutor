@@ -5,7 +5,8 @@ services:
     environment:
       TUTOR_OFFLINE: "${TUTOR_OFFLINE:-0}"
     expose: ["8000"]
+    volumes: ["./agent/data:/srv/data"]  # providers.json (holds API keys)
   web:
     build: ./web
-    ports: ["8080:80"]
+    ports: ["127.0.0.1:8080:80"]
     depends_on: [agent]

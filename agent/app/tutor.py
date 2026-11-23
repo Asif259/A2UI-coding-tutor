@@ -7,7 +7,7 @@ import json
 import logging
 import pathlib
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from a2ui.core import A2uiError
@@ -16,7 +16,8 @@ from a2ui.parser.response_part import A2uiPart, TextPart
 from a2ui.processor import A2uiRequestProcessor
 
 from .catalog import CATALOG, new_renderer_state
-from .llm import LLM, Turn
+from .llm import LLM, LLMError, Turn
+from .providers import last_provider
 
 log = logging.getLogger(__name__)
 EXAMPLES_DIR = pathlib.Path(__file__).parent / "examples"
@@ -63,6 +64,7 @@ class Reply:
     text: str
     messages: list[dict[str, Any]]
     surface_id: str | None
+    provider: str | None = None
 
 
 def describe_action(action: dict[str, Any], session: Session) -> str:
@@ -116,13 +118,15 @@ class Tutor:
         s.history.append(("user", user_text))
         try:
             raw = await self.llm.generate(self.system, s.history)
-        except Exception:  # network, quota, auth: never crash the chat
-            log.exception("LLM call failed")
+        except Exception as e:  # never crash the chat
+            log.warning("LLM call failed: %s", e)
             s.history.pop()
-            return Reply("The tutor model is unavailable right now. Please try again.", [], None)
+            msg = str(e) if isinstance(e, LLMError) else "The tutor model is unavailable."
+            return Reply(f"{msg} Please try again.", [], None)
         s.history.append(("model", raw))
+        prov = last_provider.get()
         try:
-            return self._parse(s, raw)
+            return replace(self._parse(s, raw), provider=prov)
         except A2uiError as err:
             log.warning("invalid model output, retrying: %s", err)
             # Guardrail 1: one repair attempt, showing the model exactly what was wrong.
@@ -135,11 +139,12 @@ class Tutor:
             )
             try:
                 raw = await self.llm.generate(self.system, s.history)
+                prov = last_provider.get()
                 s.history.append(("model", raw))
-                return self._parse(s, raw)
+                return replace(self._parse(s, raw), provider=prov)
             except (A2uiError, Exception):
                 # Guardrail 2: never ship unvalidated UI. Fall back to plain text.
-                return Reply(_plain(raw), [], None)
+                return Reply(_plain(raw), [], None, prov)
 
     def _parse(self, s: Session, raw: str) -> Reply:
         """Parses and validates. Raises A2uiError if the output is not valid catalog UI."""

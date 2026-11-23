@@ -49,3 +49,15 @@ button:disabled { opacity: .5; cursor: default; }
 .tc-progress__row { display: grid; grid-template-columns: 140px 1fr 44px; gap: 10px; align-items: center; margin: 6px 0; }
 .tc-progress__bar { height: 10px; background: #e6e7ec; border-radius: 5px; overflow: hidden; }
 .tc-progress__bar span { display: block; height: 100%; background: #2f5bea; } .tc-progress__bar.is-done span { background: #2e9e57; }
+
+/* Providers */
+.bar { display: flex; justify-content: space-between; align-items: center; }
+.via { display: block; color: #6b6e7a; margin-top: 8px; }
+.prov { background: #fff; border: 1px solid #dcdde3; border-radius: 12px; padding: 14px; display: grid; gap: 10px; }
+.prov__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.prov__list li { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; border: 1px solid #e6e7ec; border-radius: 8px; padding: 8px 10px; }
+.prov__list li.is-off { opacity: .55; }
+.prov__main { display: grid; gap: 2px; } .prov__btns { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.prov__form { display: grid; gap: 8px; } .prov__form h3 { margin: 0; }
+.prov__form label { display: grid; gap: 3px; font-size: .9rem; }
+.prov__form input, .prov__form select { font: inherit; padding: 7px; border-radius: 8px; border: 1px solid #c9cad2; }

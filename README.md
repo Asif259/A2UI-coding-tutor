@@ -26,7 +26,7 @@ Plus the layout primitives `Text`, `Row`, `Column`, `Divider`. Nothing else can 
 ## Quickstart
 
 ```bash
-cp .env.example .env            # add GEMINI_API_KEY, or set TUTOR_OFFLINE=1
+cp .env.example .env            # optional: GEMINI_API_KEY seeds a first provider, or TUTOR_OFFLINE=1
 # agent
 cd agent && python -m venv .venv && .venv/bin/pip install -e ".[dev]"
 .venv/bin/uvicorn app.main:app --port 8000
@@ -44,6 +44,18 @@ cd web && npx tsc --noEmit && npx vitest run
 cd agent && .venv/bin/python evals/run_eval.py     # 10 prompts against the configured model
 ```
 
+## AI providers and automatic failover
+
+Click **AI providers** in the app to add as many providers as you like: name, API format, base URL, API key and
+model ID. Formats: **OpenAI-compatible** (OpenAI, OpenRouter, DeepSeek, Groq, Ollama, LM Studio: set the base URL),
+**Anthropic** and **Google Gemini**. Providers are tried top to bottom. If one fails (quota, outage, bad key,
+timeout) it sits out for 60 s and the next one answers; each reply shows which provider served it. Use **Test**,
+reorder with the arrows, disable without deleting.
+
+Keys are stored only on the server in `agent/data/providers.json` (mode 0600, gitignored) and the API returns only a
+masked hint. There is **no login**: run it on localhost only (compose binds `127.0.0.1`). Anyone who can reach the
+port can read replies, add providers and make the server call any base URL.
+
 ## Design tradeoffs
 
 - **Catalog as guardrail, not prompt.** The prompt asks for approved components; the validator enforces it. A reply
@@ -60,8 +72,9 @@ cd agent && .venv/bin/python evals/run_eval.py     # 10 prompts against the conf
 
 ## Status and limits
 
-Tests use a scripted fake LLM. **The live Gemini path has not been exercised**; run `evals/run_eval.py` with a key to
-see how a real model behaves. The Docker images were not built in the authoring environment, only the compose file
-was validated. See [docs/quickstart-notes.md](docs/quickstart-notes.md) for the official quickstart run.
+Unit tests use scripted fake models and mocked HTTP for the OpenAI and Anthropic formats. A live Gemini
+(`gemini-3.5-flash`) eval scored 8/10 expected surfaces before hitting the free-tier quota; the failures were API
+errors, not invalid output. Real OpenAI and Anthropic endpoints were not called. The Docker images build and serve
+(offline mode checked). See [docs/quickstart-notes.md](docs/quickstart-notes.md) for the official quickstart run.
 
 MIT licensed.

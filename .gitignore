@@ -9,3 +9,7 @@ dist/
 *.tsbuildinfo
 coverage/
 .DS_Store
+
+# local provider list holds API keys
+agent/data/
+data/
