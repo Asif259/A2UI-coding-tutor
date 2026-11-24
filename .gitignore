@@ -13,3 +13,4 @@ coverage/
 # local provider list holds API keys
 agent/data/
 data/
+.taste-skill/
