@@ -1,24 +1,41 @@
-import { A2uiSurface } from "@a2ui/react";
 import { MessageProcessor } from "@a2ui/web_core/v1_0";
 import { useMemo, useRef, useState } from "react";
 import { type ActionPayload, chat } from "./api";
 import { createTutorCatalog } from "./catalog";
-import Providers from "./Providers";
+import { useSmoothScroll } from "./motion";
+import Cta from "./components/Cta";
+import Faq from "./components/Faq";
+import Footer from "./components/Footer";
+import Hero from "./components/Hero";
+import HowItWorks from "./components/HowItWorks";
+import Nav from "./components/Nav";
+import ProvidersPanel from "./components/ProvidersPanel";
+import StartHere from "./components/StartHere";
+import Statement from "./components/Statement";
+import Studio, { type Item } from "./components/Studio";
 
-type Item =
-  | { kind: "user"; text: string }
-  | { kind: "tutor"; text: string; via?: string | null }
-  | { kind: "surface"; id: string; via?: string | null };
+type Body = { message: string } | { action: ActionPayload };
 
 export default function App() {
+  useSmoothScroll();
   const sessionId = useRef(crypto.randomUUID()).current;
   const [items, setItems] = useState<Item[]>([]);
-  const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [clearNote, setClearNote] = useState("");
   const [settings, setSettings] = useState(false);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  const providersTrigger = useRef<HTMLElement | null>(null);
+  const lastBody = useRef<Body | null>(null);
 
-  const send = async (body: { message: string } | { action: ActionPayload }) => {
+  const sendRef = useRef<(b: Body) => Promise<void>>(async () => {});
+  const mp = useMemo(
+    () => new MessageProcessor([createTutorCatalog()], (a) => void sendRef.current({ action: a as never })),
+    [],
+  );
+
+  const send = async (body: Body) => {
+    lastBody.current = body;
     setBusy(true);
     setError("");
     try {
@@ -35,66 +52,55 @@ export default function App() {
       setBusy(false);
     }
   };
+  sendRef.current = send;
 
-  // One processor for the whole conversation; a press on any surface goes back to the agent.
-  const mp = useMemo(
-    () => new MessageProcessor([createTutorCatalog()], (a) => void sendRef.current(a as never)),
-    [],
-  );
-  const sendRef = useRef<(a: ActionPayload) => Promise<void>>(async () => {});
-  sendRef.current = (a) => send({ action: a });
+  const sendText = (text: string) => {
+    const value = text.trim();
+    if (!value || busy) return;
+    setItems((prev) => [...prev, { kind: "user", text: value }]);
+    void send({ message: value });
+  };
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text || busy) return;
-    setInput("");
-    setItems((prev) => [...prev, { kind: "user", text }]);
-    void send({ message: text });
+  const openProviders = () => {
+    providersTrigger.current = document.activeElement as HTMLElement | null;
+    setSettings(true);
+  };
+
+  const clear = () => {
+    setItems([]);
+    setError("");
+    setClearNote("Session cleared. The next prompt starts fresh.");
+    composerRef.current?.focus();
   };
 
   return (
-    <main className="app">
-      <header className="bar">
-        <h1>A2UI Tutor</h1>
-        <button type="button" onClick={() => setSettings((v) => !v)} aria-expanded={settings}>
-          AI providers
-        </button>
-      </header>
-      {settings && <Providers />}
-      <div className="feed" aria-live="polite">
-        {items.length === 0 && (
-          <p className="muted">Ask for a quiz ("quiz me on Python lists") or paste some code.</p>
-        )}
-        {items.map((it, i) =>
-          it.kind === "surface" ? (
-            <div className="surface" key={i}>
-              <A2uiSurface surface={mp.getSurface(it.id) as never} />
-              {it.via ? <small className="via">via {it.via}</small> : null}
-            </div>
-          ) : (
-            <p key={i} className={it.kind === "user" ? "bubble user" : "bubble"}>
-              {it.text}
-            </p>
-          ),
-        )}
-        {busy && <p className="muted">Thinking…</p>}
-        {error && <p className="error">{error}</p>}
-      </div>
-      <form onSubmit={submit} className="composer">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question or paste code"
-          rows={3}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) submit(e);
-          }}
+    <>
+      <a className="sr-only" href="#session">
+        Skip to the session
+      </a>
+      <Nav onProviders={openProviders} />
+      <main id="main">
+        <Hero onProviders={openProviders} />
+        <StartHere onPick={sendText} />
+        <Statement />
+        <Studio
+          items={items}
+          busy={busy}
+          error={error}
+          clearNote={clearNote}
+          composerRef={composerRef}
+          getSurface={(id) => mp.getSurface(id)}
+          onSend={sendText}
+          onClear={clear}
+          onRetry={() => lastBody.current && void send(lastBody.current)}
+          onProviders={openProviders}
         />
-        <button type="submit" disabled={busy || !input.trim()}>
-          Send
-        </button>
-      </form>
-    </main>
+        <HowItWorks />
+        <Faq />
+        <Cta onProviders={openProviders} />
+      </main>
+      <Footer onProviders={openProviders} />
+      <ProvidersPanel open={settings} onClose={() => setSettings(false)} triggerRef={providersTrigger} />
+    </>
   );
 }

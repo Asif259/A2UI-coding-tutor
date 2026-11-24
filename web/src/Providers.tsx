@@ -26,6 +26,10 @@ export default function Providers() {
   const [editing, setEditing] = useState<string | null>(null);
   const [note, setNote] = useState<Record<string, string>>({});
   const [error, setError] = useState("");
+  // Auto-fetch model state (new-provider only)
+  const [modelError, setModelError] = useState("");
+  const [fetchingModels, setFetchingModels] = useState(false);
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
 
   const refresh = useCallback(
     () => providers.list().then(setList).catch((e) => setError(String(e.message ?? e))),
@@ -57,6 +61,8 @@ export default function Providers() {
       else await providers.add(form);
       setForm(null);
       setEditing(null);
+      setModelError("");
+      setAvailableModels([]);
     });
   };
 
@@ -64,6 +70,30 @@ export default function Providers() {
     setEditing(p.id);
     setForm({ name: p.name, format: p.format, baseUrl: p.baseUrl, apiKey: "", model: p.model, enabled: p.enabled });
   };
+
+  // Auto-fetch model IDs when format / base URL / API key are all present on *add* mode.
+  useEffect(() => {
+    if (!form || editing) return;
+    const ready = !!form.format && !!form.baseUrl.trim() && !!form.apiKey.trim();
+    setModelError("");
+    setAvailableModels([]);
+    if (!ready) return;
+    setFetchingModels(true);
+    providers
+      .listModels({ format: form.format, baseUrl: form.baseUrl.trim(), apiKey: form.apiKey.trim() })
+      .then((r) => {
+        if (r.error) {
+          setModelError(r.error);
+          return;
+        }
+        setAvailableModels(r.models);
+        if (r.models.length > 0 && !form.model) {
+          setForm({ ...form, model: r.models[0] });
+        }
+      })
+      .catch((e) => setModelError(e instanceof Error ? e.message : String(e)))
+      .finally(() => setFetchingModels(false));
+  }, [form?.format, form?.baseUrl, form?.apiKey, editing, form?.model]);
 
   return (
     <section className="prov" aria-label="AI providers">
@@ -137,10 +167,29 @@ export default function Providers() {
             API key
             <input type="password" autoComplete="off" placeholder={editing ? "leave blank to keep the saved key" : ""} value={form.apiKey} onChange={(e) => setForm({ ...form, apiKey: e.target.value })} />
           </label>
-          <label>Model ID<input required value={form.model} onChange={(e) => setForm({ ...form, model: e.target.value })} /></label>
+          <label>
+            Model ID
+            <input
+              required
+              value={form.model}
+              onChange={(e) => { setForm({ ...form, model: e.target.value }); setModelError(""); }}
+            />
+          </label>
+          {!editing && (
+            <>
+              {fetchingModels && <p className="muted">Fetching model IDs…</p>}
+              {modelError && <p className="error">{modelError}</p>}
+              {availableModels.length > 0 && (
+                <p className="muted prov__models">
+                  Available models: {availableModels.join(", ")}{" "}
+                  <button type="button" className="muted" onClick={() => setAvailableModels([])} title="clear">✕</button>
+                </p>
+              )}
+            </>
+          )}
           <div className="prov__btns">
             <button type="submit">{editing ? "Save" : "Add provider"}</button>
-            <button type="button" onClick={() => { setForm(null); setEditing(null); }}>Cancel</button>
+            <button type="button" onClick={() => { setForm(null); setEditing(null); setModelError(""); setAvailableModels([]); }}>Cancel</button>
           </div>
         </form>
       ) : (

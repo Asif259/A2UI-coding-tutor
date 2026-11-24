@@ -83,4 +83,6 @@ export const providers = {
   remove: (id: string) => call<void>("DELETE", `/api/providers/${id}`),
   reorder: (ids: string[]) => call<Provider[]>("PUT", "/api/providers/order", { ids }),
   test: (id: string) => call<{ ok: boolean; message: string }>("POST", `/api/providers/${id}/test`),
+  listModels: (body: { format: ProviderFormat; baseUrl: string; apiKey: string }) =>
+    call<{ models: string[]; error?: string }>("POST", "/api/providers/models", body),
 };
