@@ -1,25 +1,34 @@
 import { A2uiSurface } from "@a2ui/react";
-import { type FormEvent, type KeyboardEvent, type RefObject, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Arrow,
+  BugIcon,
+  CloseIcon,
+  FileIcon,
+  FolderIcon,
+  Plus,
+  SettingsIcon,
+  SlidersIcon,
+} from "./Icons";
 import { useReveal } from "../motion";
-import { Arrow, SlidersIcon } from "./Icons";
 
 export type Item =
-  | { kind: "user"; text: string; via?: string | null }
-  | { kind: "tutor"; text: string; via?: string | null }
+  | { kind: "user"; text: string; id?: string }
+  | { kind: "tutor"; text: string; id?: string; via?: string | null }
   | { kind: "surface"; id: string; via?: string | null };
 
-type Props = {
+interface Props {
   items: Item[];
   busy: boolean;
   error: string;
   clearNote: string;
-  composerRef: RefObject<HTMLTextAreaElement | null>;
+  composerRef: React.RefObject<HTMLTextAreaElement | null>;
   getSurface: (id: string) => unknown;
   onSend: (text: string) => void;
   onClear: () => void;
   onRetry: () => void;
   onProviders: () => void;
-};
+}
 
 export default function Studio({
   items,
@@ -34,127 +43,254 @@ export default function Studio({
   onProviders,
 }: Props) {
   const [input, setInput] = useState("");
-  const side = useReveal<HTMLDivElement>();
-  const feed = useReveal<HTMLDivElement>(100);
+  const feedRef = useRef<HTMLDivElement | null>(null);
+  const hasItems = items.length > 0;
+  const revealError = useReveal();
+  const revealEmpty = useReveal();
+  const revealFeed = useReveal();
 
-  const submit = (e?: FormEvent) => {
-    e?.preventDefault();
-    const text = input.trim();
-    if (!text || busy) return;
-    setInput("");
-    onSend(text);
-  };
+  useEffect(() => {
+    if (!busy && feedRef.current) {
+      feedRef.current.scrollTop = feedRef.current.scrollHeight;
+    }
+  }, [items, busy]);
 
-  const onKey = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
+  const handleKey = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
-      submit();
+      void handleSend();
     }
   };
 
-  const canSend = !busy && input.trim().length > 0;
+  const handleSend = async () => {
+    const value = input.trim();
+    if (!value || busy) return;
+    setInput("");
+    onSend(value);
+  };
+
+  const userMessages = items.filter((i): i is Extract<Item, { kind: "user" }> => i.kind === "user");
 
   return (
-    <section className="section section--white" id="session" aria-labelledby="session-title">
-      <div className="container studio">
-        <div className="studio__side" ref={side}>
-          <span className="eyebrow">03 — Session</span>
-          <h2 className="h3" id="session-title">
-            The feed.
-          </h2>
-          <p className="body-md muted">
-            One conversation per tab. Surfaces render here as the agent sends them, and a press on any surface returns
-            to the agent as your next move.
-          </p>
-          <div className="studio__meta">
-            <div className="studio__meta-row label-lg">
-              <span className="muted">Provider</span>
-              <span className="muted">{items.some((i) => i.via) ? "answering" : "on call"}</span>
-            </div>
-            <div className="studio__meta-row label-lg">
-              <button type="button" className="u-link" onClick={onProviders}>
-                <SlidersIcon /> Configure
-              </button>
-              <button type="button" className="u-link" onClick={onClear} disabled={items.length === 0}>
-                Clear
-              </button>
-            </div>
-            <p className="label-sm muted" role="status" aria-live="polite">
-              {clearNote}
-            </p>
-          </div>
+    <section className="studio" aria-label="Coding session">
+      {/* Window chrome */}
+      <div className="window-chrome" role="toolbar" aria-label="Window controls">
+        <div className="traffic-lights" aria-hidden="true">
+          <span className="traffic-light traffic-light--close" />
+          <span className="traffic-light traffic-light--minimise" />
+          <span className="traffic-light traffic-light--maximise" />
         </div>
-
-        <div>
-          <div className="feed" ref={feed} aria-live="polite">
-            {items.length === 0 && !busy && !error ? (
-              <div className="feed__empty">
-                <h3 className="h5">Nothing asked yet.</h3>
-                <p className="body-md muted">
-                  Type a topic or paste a snippet. Start with “quiz me on Python lists” or a piece of code you want read
-                  line by line.
-                </p>
-                <button type="button" className="btn btn--secondary btn--sm" onClick={() => composerRef.current?.focus()}>
-                  Write a prompt
+        <nav className="tab-bar" aria-label="Session tabs">
+          {hasItems ? (
+            <>
+              {userMessages.map((msg, idx) => (
+                <button
+                  key={msg.id ?? idx}
+                  className={`tab${idx === userMessages.length - 1 ? " is-active" : ""}`}
+                  onClick={() => {
+                    // Scroll to this message in the feed
+                    const el = feedRef.current?.querySelector(
+                      `[data-msg-id="${msg.id}"]`,
+                    );
+                    el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                  }}
+                >
+                  <span className="tab__label">{msg.text.slice(0, 32)}{msg.text.length > 32 ? "…" : ""}</span>
+                  <span className="tab-close" aria-label="Close tab">
+                    <CloseIcon />
+                  </span>
                 </button>
-              </div>
-            ) : null}
+              ))}
+              <button className="tab tab--add" aria-label="New conversation">
+                <Plus />
+              </button>
+            </>
+          ) : (
+            <span className="tab is-active">
+              <span className="tab__label">Untitled session</span>
+            </span>
+          )}
+        </nav>
+        <button
+          className="chrome-btn"
+          aria-label="Open providers"
+          onClick={onProviders}
+          title="Providers &amp; settings"
+        >
+          <SlidersIcon />
+        </button>
+      </div>
 
-            {items.map((it, i) =>
-              it.kind === "surface" ? (
-                <div className="surface reveal is-in" key={`s${i}`}>
-                  <div className="surface__card">
-                    <A2uiSurface surface={getSurface(it.id) as never} />
-                  </div>
-                  {it.via ? <span className="msg__via">Answered via {it.via}</span> : null}
+      {/* Main IDE layout */}
+      <div className="studio--ide">
+        {/* Sidebar – file explorer */}
+        <aside className="studio__side" role="complementary" aria-label="File explorer">
+          <div className="sidebar-section">
+            <div className="sidebar-section__head">
+              <FolderIcon />
+              <span>EXPLORER</span>
+            </div>
+            <ul className="sidebar-list" role="list">
+              <li className="sidebar-item is-folder">
+                <span className="sidebar-icon"><FolderIcon /></span>
+                <span className="sidebar-label">src</span>
+              </li>
+              <li className="sidebar-item" style={{ paddingLeft: "1rem" }}>
+                <span className="sidebar-icon"><FileIcon /></span>
+                <span className="sidebar-label">App.tsx</span>
+              </li>
+              <li className="sidebar-item" style={{ paddingLeft: "1rem" }}>
+                <span className="sidebar-icon"><FileIcon /></span>
+                <span className="sidebar-label">api.ts</span>
+              </li>
+              <li className="sidebar-item" style={{ paddingLeft: "1rem" }}>
+                <span className="sidebar-icon"><FileIcon /></span>
+                <span className="sidebar-label">catalog.ts</span>
+              </li>
+              <li className="sidebar-item is-folder">
+                <span className="sidebar-icon"><FolderIcon /></span>
+                <span className="sidebar-label">components</span>
+              </li>
+              <li className="sidebar-item" style={{ paddingLeft: "1rem" }}>
+                <span className="sidebar-icon"><FileIcon /></span>
+                <span className="sidebar-label">Studio.tsx</span>
+              </li>
+              <li className="sidebar-item" style={{ paddingLeft: "1rem" }}>
+                <span className="sidebar-icon"><FileIcon /></span>
+                <span className="sidebar-label">Icons.tsx</span>
+              </li>
+              <li className="sidebar-item" style={{ paddingLeft: "1rem" }}>
+                <span className="sidebar-icon"><FileIcon /></span>
+                <span className="sidebar-label">Hero.tsx</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="sidebar-section">
+            <div className="sidebar-section__head">
+              <BugIcon />
+              <span>TROUBLESHOOT</span>
+            </div>
+            <ul className="sidebar-list" role="list">
+              <li className="sidebar-item">
+                <span className="sidebar-icon"><SettingsIcon /></span>
+                <span className="sidebar-label">Debug console</span>
+              </li>
+              <li className="sidebar-item">
+                <span className="sidebar-icon"><SettingsIcon /></span>
+                <span className="sidebar-label">Problem summary</span>
+              </li>
+            </ul>
+          </div>
+        </aside>
+
+        {/* Feed + Composer area */}
+        <div className="studio__work">
+          <div className="feed" ref={feedRef} role="log" aria-live="polite" aria-label="Conversation">
+            {!hasItems ? (
+              <div className="feed__empty" ref={revealEmpty}>
+                <div className="feed__empty-icon" aria-hidden="true">
+                  <Arrow />
                 </div>
-              ) : (
-                <p key={`m${i}`} className={`msg body-md ${it.kind === "user" ? "msg--user" : "msg--tutor"}`}>
-                  {it.text}
-                  {it.via ? <span className="msg__via">Answered via {it.via}</span> : null}
+                <p className="feed__empty-title">A2UI Tutor</p>
+                <p className="feed__empty-sub">
+                  Type a learning goal or paste code to begin. The tutor will surface interactive exercises and explanations as you go.
                 </p>
-              ),
+              </div>
+            ) : (
+              <div ref={revealFeed}>
+                {items.map((item, idx) =>
+                  item.kind === "user" ? (
+                    <div key={item.id ?? idx} className="msg msg--user" data-msg-id={item.id}>
+                      <span className="msg__prompt" aria-hidden="true">&gt; </span>
+                      {item.text}
+                    </div>
+                  ) : item.kind === "tutor" ? (
+                    <div key={item.id ?? idx} className="msg msg--tutor">
+                      <p>{item.text}</p>
+                      {item.via && (
+                        <span className="msg__via">→ {item.via}</span>
+                      )}
+                    </div>
+                  ) : (
+                    <div key={item.id} className="surface-wrap">
+                      <A2uiSurface surface={getSurface(item.id) as never} />
+                    </div>
+                  ),
+                )}
+              </div>
             )}
 
-            {busy ? (
-              <div className="skeleton" aria-label="Waiting for the next surface">
-                <span />
-                <span />
-                <span />
+            {error && (
+              <div className="state-line state-line--error" ref={revealError} role="alert">
+                <span className="state-line__icon" aria-hidden="true">✕</span>
+                <span>{error}</span>
+                <button className="btn btn--muted" onClick={onRetry} type="button">Retry</button>
               </div>
-            ) : null}
+            )}
 
-            {error ? (
-              <p className="state-line state-line--error">
-                Reply failed: {error}
-                <button type="button" className="retry" onClick={onRetry}>
-                  Retry
-                </button>
-              </p>
-            ) : null}
+            {clearNote && (
+              <div className="state-line" ref={revealError} role="status">
+                <span className="state-line__icon" aria-hidden="true">⟳</span>
+                <span>{clearNote}</span>
+              </div>
+            )}
+
+            {busy && (
+              <div className="msg msg--tutor" aria-live="polite">
+                <span className="skeleton"><span /></span>
+              </div>
+            )}
           </div>
 
-          <form className="composer" onSubmit={submit}>
-            <label className="label-lg" htmlFor="prompt" style={{ display: "block", marginBottom: 8, color: "var(--text-muted)" }}>
-              Your prompt
-            </label>
-            <textarea
-              id="prompt"
-              ref={composerRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={onKey}
-              rows={3}
-              placeholder="Ask a question or paste code"
-              disabled={busy}
-            />
-            <div className="composer__foot">
-              <span className="label-lg composer__hint">Enter sends · Shift + Enter adds a line</span>
-              <button type="submit" className="btn btn--primary" disabled={!canSend}>
-                Send prompt
-                <Arrow />
+          {/* Status bar */}
+          <div className="status-bar" role="status" aria-label="Session status">
+            <div className="status-bar__left">
+              <span className="status-badge">
+                {hasItems ? `${items.length} messages` : "Ready"}
+              </span>
+              <span className="status-dot" aria-hidden="true" />
+            </div>
+            <div className="status-bar__right">
+              {hasItems && (
+                <button className="status-btn" onClick={onClear} type="button">
+                  Clear
+                </button>
+              )}
+              <button className="status-btn" onClick={onProviders} type="button">
+                <SettingsIcon />
+                Providers
               </button>
             </div>
+          </div>
+
+          {/* Composer */}
+          <form
+            className="composer"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleSend();
+            }}
+          >
+            <textarea
+              ref={composerRef}
+              className="composer__area"
+              rows={3}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKey}
+              placeholder="Ask anything… (⌘/Ctrl+Enter to send)"
+              disabled={busy}
+              aria-label="Type your message"
+            />
+            <button
+              className="composer__send"
+              type="submit"
+              disabled={!input.trim() || busy}
+              aria-label="Send message"
+            >
+              <Arrow />
+            </button>
           </form>
         </div>
       </div>
