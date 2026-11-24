@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Photo credits — A2UI Tutor</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&family=Geist+Mono:wght@400&display=swap" rel="stylesheet" />
+  <style>
+    :root { --bg: #ededed; --strong: #151515; --muted: #666666; --line: #15151529; --font: "Geist", system-ui, sans-serif; --font-ui: "Geist Mono", monospace; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--strong); font: 400 15px/22px var(--font); }
+    main { max-width: 820px; margin-inline: auto; padding: 56px 40px 96px; }
+    .back { font-family: var(--font-ui); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-decoration: none; }
+    h1 { font-weight: 500; font-size: 40px; line-height: 44px; letter-spacing: -1.5px; margin: 24px 0 8px; }
+    .lead { color: var(--muted); max-width: 60ch; margin: 0 0 40px; }
+    ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+    li { display: grid; grid-template-columns: 200px 1fr; gap: 20px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+    .slot { font-family: var(--font-ui); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+    h2 { font-weight: 500; font-size: 20px; line-height: 24px; margin: 0 0 4px; }
+    p { margin: 0; color: var(--muted); }
+    a { color: inherit; }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back" href="/">← Back to A2UI Tutor</a>
+    <h1 class="h2">Photo credits.</h1>
+    <p class="lead">
+      This build ships no third-party photography. The wide band above the fold is a hand-drawn SVG placeholder in
+      <code>public/img/hero-band.svg</code>, written for this project and covered by the repository's MIT licence.
+      Replace it with your own photograph when you have one, and credit the photographer in this file.
+    </p>
+    <ul>
+      <li>
+        <span class="slot">Slot · hero-band</span>
+        <div>
+          <h2>Hero band, quiet desk (21:9)</h2>
+          <p>Placeholder only. Subject: a calm desk with laptop, notebook and daylight. 1680 × 720 SVG, no external requests.</p>
+        </div>
+      </li>
+      <li>
+        <span class="slot">Slot · none yet</span>
+        <div>
+          <h2>Case and CTA photos</h2>
+          <p>Not used. The CTA is a type band, so only the hero slot needs photography.</p>
+        </div>
+      </li>
+      <li>
+        <span class="slot">Typefaces</span>
+        <div>
+          <h2>Geist and Geist Mono</h2>
+          <p>Loaded from Google Fonts under the SIL Open Font License. See <a href="https://fonts.google.com/specimen/Geist">fonts.google.com/specimen/Geist</a>.</p>
+        </div>
+      </li>
+    </ul>
+  </main>
+</body>
+</html>
