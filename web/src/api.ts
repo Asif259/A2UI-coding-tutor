@@ -36,7 +36,14 @@ export async function chat(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) throw new Error(`Server returned ${res.status}`);
+  if (!res.ok) {
+    const txt = await res.text();
+    // Map common errors to user-friendly messages
+    if (txt.includes("ECONNREFUSED") || txt.includes("connection refused")) {
+      throw new Error("Connection refused — the backend may be down or a firewall/proxy is blocking it");
+    }
+    throw new Error(`Server returned ${res.status}`);
+  }
   return res.json();
 }
 

@@ -75,11 +75,11 @@ export default function App() {
 
   return (
     <>
-      <a className="sr-only" href="#session">
-        Skip to the session
-      </a>
-      <Nav onProviders={openProviders} />
-      <main id="main">
+      <a className="sr-only" href="#main">Skip to main content</a>
+      <header role="banner">
+        <Nav onProviders={openProviders} />
+      </header>
+      <main id="main" role="main">
         <Hero onProviders={openProviders} />
         <StartHere onPick={sendText} />
         <Statement />
@@ -99,7 +99,9 @@ export default function App() {
         <Faq />
         <Cta onProviders={openProviders} />
       </main>
-      <Footer onProviders={openProviders} />
+      <footer role="contentinfo">
+        <Footer onProviders={openProviders} />
+      </footer>
       <ProvidersPanel open={settings} onClose={() => setSettings(false)} triggerRef={providersTrigger} />
     </>
   );
