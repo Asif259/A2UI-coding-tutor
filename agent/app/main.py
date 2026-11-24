@@ -5,8 +5,9 @@ from __future__ import annotations
 import time
 from typing import Any
 
+import httpx
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .llm import LLM, LLMError
 from .providers import (
@@ -17,6 +18,7 @@ from .providers import (
     ProviderStore,
     default_llm,
     default_store,
+    list_models,
 )
 from .tutor import Tutor
 
@@ -68,6 +70,25 @@ class ProviderOut(BaseModel):
 
 class Order(BaseModel):
     ids: list[str]
+
+
+class ListModelsIn(BaseModel):
+    format: Format
+    baseUrl: str = ""
+    apiKey: str = ""
+
+    @field_validator("baseUrl")
+    @classmethod
+    def _url(cls, v: str) -> str:
+        v = v.strip().rstrip("/")
+        if v and not v.startswith(("http://", "https://")):
+            raise ValueError("base URL must start with http:// or https://")
+        return v
+
+
+class ListModelsOut(BaseModel):
+    models: list[str]
+    error: str | None = None
 
 
 def create_app(llm: LLM | None = None, store: ProviderStore | None = None) -> FastAPI:
@@ -152,6 +173,17 @@ def create_app(llm: LLM | None = None, store: ProviderStore | None = None) -> Fa
         except LLMError as e:
             return {"ok": False, "message": str(e)}
         return {"ok": True, "message": f"OK in {time.monotonic() - started:.1f}s"}
+
+    @app.post("/api/providers/models", response_model=ListModelsOut)
+    async def get_models(body: ListModelsIn) -> ListModelsOut:
+        http = httpx.AsyncClient(timeout=15)
+        try:
+            models = await list_models(body.format, body.baseUrl, body.apiKey, http)
+        except LLMError as e:
+            return ListModelsOut(models=[], error=str(e))
+        finally:
+            await http.aclose()
+        return ListModelsOut(models=models)
 
     return app
 

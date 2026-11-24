@@ -168,6 +168,40 @@ async def _call_gemini(
 _CALLS = {"openai": _call_openai, "anthropic": _call_anthropic, "gemini": _call_gemini}
 
 
+async def list_models(
+    format: Format, base_url: str, api_key: str, http: httpx.AsyncClient
+) -> list[str]:
+    """Model IDs offered by a provider, for the add-provider form.
+
+    Raises LLMError on failure so the client can show a message and still let the user
+    type a model id by hand.
+    """
+    base = (base_url or DEFAULT_BASE[format]).rstrip("/")
+    if not base.startswith(("http://", "https://")):
+        raise LLMError("base URL must start with http:// or https://")
+    if format == "gemini":
+        r = await http.get(f"{base}/v1beta/models", params={"key": api_key})
+        if r.status_code >= 400:
+            raise LLMError(f"HTTP {r.status_code}")
+        return sorted(
+            m.get("name", "").removeprefix("models/")
+            for m in r.json().get("models", [])
+            if isinstance(m, dict) and m.get("name")
+        )
+    if format == "anthropic":
+        headers = {"x-api-key": api_key, "anthropic-version": "2023-06-01"}
+        url = f"{base}/v1/models"
+    else:
+        headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+        url = f"{base}/models"
+    r = await http.get(url, headers=headers)
+    if r.status_code >= 400:
+        raise LLMError(f"HTTP {r.status_code}")
+    return sorted(
+        {m.get("id") for m in r.json().get("data", []) if isinstance(m, dict) and m.get("id")}
+    )
+
+
 class FailoverLLM:
     def __init__(
         self, store: ProviderStore, http: httpx.AsyncClient | None = None, clock=time.monotonic
