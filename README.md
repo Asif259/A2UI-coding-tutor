@@ -40,13 +40,13 @@ Checks (same as CI):
 
 ```bash
 cd agent && .venv/bin/ruff check . && .venv/bin/pytest -q && .venv/bin/python -m app.catalog.build --check
-cd web && npx tsc --noEmit && npx vitest run
+cd web && npx tsc --noEmit && npx vitest run && npx vite build
 cd agent && .venv/bin/python evals/run_eval.py     # 10 prompts against the configured model
 ```
 
 ## AI providers and automatic failover
 
-Click **AI providers** in the app to add as many providers as you like: name, API format, base URL, API key and
+Open **Providers** from the nav (or the Configure link in the session) to add as many providers as you like: name, API format, base URL, API key and
 model ID. Formats: **OpenAI-compatible** (OpenAI, OpenRouter, DeepSeek, Groq, Ollama, LM Studio: set the base URL),
 **Anthropic** and **Google Gemini**. Providers are tried top to bottom. If one fails (quota, outage, bad key,
 timeout) it sits out for 60 s and the next one answers; each reply shows which provider served it. Use **Test**,
@@ -69,6 +69,28 @@ port can read replies, add providers and make the server call any base URL.
   tests.
 - **Non-streaming, in-memory sessions.** Simple and testable; a real deployment needs streaming and a session store.
 - **Per-line highlighting.** Multi-line strings and comments can be mis-coloured; it keeps line selection trivial.
+
+## Documentation
+
+A full design-doc package lives in [`docs/`](docs/). Use it to understand, extend, or vibe-code the app from scratch:
+
+| Doc | What's inside |
+|-----|---------------|
+| [PRD.md](docs/PRD.md) | Product vision, user needs, P0/P1/P2 requirements, success metrics |
+| [TRD.md](docs/TRD.md) | Architecture, API contract, data models, security, deployment |
+| [USER_JOURNEY.md](docs/USER_JOURNEY.md) | Screen map, first-time & returning flows, error scenarios |
+| [design.md](docs/design.md) | Color palette, typography, spacing, component specs, states |
+| [schema.md](docs/schema.md) | Provider/session/catalog shapes; planned SQLite schema for persistence |
+| [FINAL_CHECK_PLAN.md](docs/FINAL_CHECK_PLAN.md) | The last pre-commit scan: findings, decisions and what was applied |
+| [tracker.md](docs/tracker.md) | Feature checklist, bug log, health metrics, next actions |
+| [rules.md](docs/rules.md) | Non-negotiables for agents and humans working on this codebase |
+| [architecture.md](docs/architecture.md) | Mermaid sequence diagram + pieces table (original pre-docs artifact) |
+
+**Recommended reading order:** TRD → USER_JOURNEY → PRD → FINAL_CHECK_PLAN. Flip to rules.md before editing code; tracker.md as the living changelog.
+
+The docs describe the current codebase; update them when you ship a feature that changes behavior.
+
+---
 
 ## Status and limits
 
